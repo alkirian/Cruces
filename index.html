@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, user-scalable=no"
+    />
+    <meta name="theme-color" content="#0a0a0a" />
+    <title>Freestyle Battle Bracket</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div id="app">
+      <!-- Header -->
+      <header class="header">
+        <h1 class="logo">🎤 BATTLE<span>BRACKET</span></h1>
+        <button id="historyBtn" class="icon-btn" title="Historial">
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <circle cx="12" cy="12" r="10" />
+            <polyline points="12,6 12,12 16,14" />
+          </svg>
+        </button>
+      </header>
+
+      <!-- Screen: Registro de Participantes -->
+      <section id="registerScreen" class="screen active">
+        <div class="screen-content">
+          <h2 class="screen-title">Agregar MCs</h2>
+          <p class="screen-subtitle">Anotá a todos los participantes</p>
+
+          <div class="input-group">
+            <input
+              type="text"
+              id="mcNameInput"
+              placeholder="Nombre del MC..."
+              autocomplete="off"
+            />
+            <button id="addMcBtn" class="btn-add">+</button>
+          </div>
+
+          <div id="mcList" class="mc-list">
+            <!-- Lista de MCs agregados -->
+          </div>
+
+          <div class="mc-count"><span id="mcCount">0</span> participantes</div>
+
+          <button id="generateBtn" class="btn-primary" disabled>
+            Generar Cruces
+          </button>
+        </div>
+      </section>
+
+      <!-- Screen: Configurar Ronda -->
+      <section id="configScreen" class="screen">
+        <div class="screen-content">
+          <div class="screen-header">
+            <button id="backFromConfig" class="icon-btn">
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path d="M19 12H5M12 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <h2 class="screen-title">Configurar Torneo</h2>
+          </div>
+          <p class="screen-subtitle">¿Cuántos pasan a la siguiente ronda?</p>
+
+          <div class="pass-selector">
+            <button id="decreasePass" class="btn-round">-</button>
+            <span id="passCount" class="pass-count">2</span>
+            <button id="increasePass" class="btn-round">+</button>
+          </div>
+
+          <div id="bracketPreview" class="bracket-preview">
+            <!-- Preview de cómo quedarían los cruces -->
+          </div>
+
+          <button id="startTournamentBtn" class="btn-primary">
+            ¡Arrancar Torneo!
+          </button>
+        </div>
+      </section>
+
+      <!-- Screen: Bracket / Batalla -->
+      <section id="bracketScreen" class="screen">
+        <div class="screen-content">
+          <div class="round-indicator">
+            <div class="round-left">
+              <button id="backFromBracket" class="icon-btn back-btn" onclick="goBackFromBracket()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M19 12H5M12 19l-7-7 7-7" />
+                </svg>
+              </button>
+              <span id="roundName">Ronda 1</span>
+            </div>
+            <div class="round-actions">
+              <span id="roundProgress">0/0</span>
+              <button id="tournamentMenuBtn" class="icon-btn menu-btn" onclick="showTournamentMenu()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <circle cx="12" cy="5" r="2"/>
+                  <circle cx="12" cy="12" r="2"/>
+                  <circle cx="12" cy="19" r="2"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div id="bracketView" class="bracket-view">
+            <!-- Bracket visual -->
+          </div>
+
+          <div id="currentBattle" class="current-battle">
+            <!-- Batalla actual -->
+          </div>
+        </div>
+      </section>
+
+      <!-- Screen: Resultado Final -->
+      <section id="resultScreen" class="screen">
+        <div class="screen-content result-content">
+          <div class="trophy">🏆</div>
+          <h2 class="champion-title">¡CAMPEÓN!</h2>
+          <p id="championName" class="champion-name"></p>
+
+          <button id="newTournamentBtn" class="btn-primary">
+            Nuevo Torneo
+          </button>
+        </div>
+      </section>
+
+      <!-- Screen: Historial -->
+      <section id="historyScreen" class="screen">
+        <div class="screen-content">
+          <div class="screen-header">
+            <button id="backFromHistory" class="icon-btn">
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path d="M19 12H5M12 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <h2 class="screen-title">Historial</h2>
+          </div>
+
+          <div id="historyList" class="history-list">
+            <!-- Lista de torneos pasados -->
+          </div>
+
+          <div id="emptyHistory" class="empty-state">
+            <p>No hay torneos guardados</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Modal: Batalla -->
+      <div id="battleModal" class="modal">
+        <div class="modal-content battle-card">
+          <div class="battle-header">
+            <span id="battleRoundLabel" class="battle-round">Batalla 1</span>
+            <span id="battleTypeLabel" class="battle-type">1v1</span>
+          </div>
+
+          <div id="battleContestants" class="battle-contestants">
+            <!-- Competidores -->
+          </div>
+
+          <p class="battle-instruction">Tocá el ganador</p>
+
+          <div id="triangularOptions" class="triangular-options hidden">
+            <p>En triangular: ¿Cuántos pasan?</p>
+            <div class="triangular-btns">
+              <button id="pass1Btn" class="btn-secondary">1 pasa</button>
+              <button id="pass2Btn" class="btn-secondary">2 pasan</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
