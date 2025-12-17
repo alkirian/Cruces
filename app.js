@@ -515,6 +515,9 @@ function updatePassCountDisplay() {
 function previewBrackets() {
     const preview = generateBrackets(state.participants, state.passCount);
     
+    // Guardar los cruces para usarlos al iniciar el torneo
+    state.previewBattles = preview;
+    
     if (preview.length === 0) {
         elements.bracketPreview.innerHTML = '<p style="text-align:center;color:var(--color-text-muted)">Sin batallas (todos pasan)</p>';
         return;
@@ -568,16 +571,23 @@ function startTournament() {
         startTime: new Date().toISOString()
     };
     
+    // Usar los cruces del preview (ya definidos)
+    // Si no hay preview, generar nuevos (fallback)
+    const battles = state.previewBattles && state.previewBattles.length > 0 
+        ? state.previewBattles 
+        : generateBrackets(state.participants, state.passCount);
+    
     // Primera ronda
     const firstRound = {
         name: getRoundName(state.participants.length),
-        battles: generateBrackets(state.participants, state.passCount),
+        battles: battles,
         participants: [...state.participants],
         passCount: state.passCount
     };
     
     state.tournament.rounds.push(firstRound);
     state.currentRound = 0;
+    state.previewBattles = null; // Limpiar preview
     
     showScreen('bracketScreen');
     renderBracket();
