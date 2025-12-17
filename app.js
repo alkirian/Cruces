@@ -475,6 +475,7 @@ function tryWithQuadrangular(n, passCount) {
  * Intenta incluir a todos aunque no sea perfecto matemáticamente
  * Prioriza batallas grandes para filtrar rápido
  * Respeta los tipos permitidos
+ * SIEMPRE al menos 1 ganador por batalla
  */
 function calculateFlexiblePlan(n, passCount) {
     const plan = [];
@@ -482,31 +483,31 @@ function calculateFlexiblePlan(n, passCount) {
     let winnersNeeded = passCount;
     const allowed = state.allowedBattleTypes;
     
-    while (remaining > 0) {
+    while (remaining > 0 && winnersNeeded > 0) {
         let size = 0, winners = 0;
         
         // Elegir tamaño según lo permitido
         if (remaining === 2 && allowed.duo) {
             size = 2;
-            winners = Math.min(1, winnersNeeded);
+            winners = 1; // Siempre 1 en 1v1
         } else if (remaining === 3 && allowed.triangular) {
             size = 3;
-            winners = Math.min(2, winnersNeeded);
+            winners = Math.max(1, Math.min(2, winnersNeeded));
         } else if (remaining === 4 && allowed.quadrangular) {
             size = 4;
-            winners = Math.min(2, winnersNeeded);
+            winners = Math.max(1, Math.min(2, winnersNeeded));
         } else if (remaining >= 4 && allowed.quadrangular && winnersNeeded <= remaining / 3) {
             size = 4;
             winners = 1;
         } else if (remaining >= 4 && allowed.quadrangular && winnersNeeded >= 2) {
             size = 4;
-            winners = Math.min(2, winnersNeeded);
-        } else if (remaining >= 3 && allowed.triangular && winnersNeeded >= 1) {
+            winners = Math.max(1, Math.min(2, winnersNeeded));
+        } else if (remaining >= 3 && allowed.triangular) {
             size = 3;
-            winners = Math.min(2, winnersNeeded);
+            winners = Math.max(1, Math.min(2, winnersNeeded));
         } else if (remaining >= 2 && allowed.duo) {
             size = 2;
-            winners = Math.min(1, winnersNeeded);
+            winners = 1;
         } else {
             // No hay tipo permitido que encaje, forzar el más pequeño permitido
             if (remaining >= 2 && allowed.duo) {
@@ -521,6 +522,9 @@ function calculateFlexiblePlan(n, passCount) {
         }
         
         if (size === 0) break;
+        
+        // GARANTIZAR mínimo 1 ganador
+        winners = Math.max(1, winners);
         
         plan.push({ size, winnersNeeded: winners });
         remaining -= size;
@@ -660,11 +664,24 @@ function previewBrackets() {
     const totalInBattles = preview.reduce((sum, b) => sum + b.size, 0);
     const notParticipating = state.participants.length - totalInBattles;
     
+    // Verificar si los ganadores totales coinciden con el passCount
+    const totalWinners = preview.reduce((sum, b) => sum + b.winnersNeeded, 0);
+    const winnersMismatch = totalWinners !== state.passCount;
+    
     if (notParticipating > 0) {
         elements.bracketPreview.innerHTML += `
             <div class="preview-warning">
                 ⚠️ ${notParticipating} MC${notParticipating > 1 ? 's' : ''} sin batalla. 
                 Ajustá el número que pasan.
+            </div>
+        `;
+    }
+    
+    if (winnersMismatch && notParticipating === 0) {
+        elements.bracketPreview.innerHTML += `
+            <div class="preview-warning">
+                ⚠️ Pasan ${totalWinners} en vez de ${state.passCount}. 
+                Probá otro número o habilitá más tipos de batalla.
             </div>
         `;
     }
