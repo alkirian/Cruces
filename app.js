@@ -12,6 +12,7 @@ const state = {
     eliminated: [], // Eliminados de la ronda actual (para repechaje)
     allEliminated: [], // Todos los eliminados del torneo
     editMode: false, // Si estamos editando un resultado
+    allowedBattleTypes: { duo: true, triangular: true, quadrangular: true }, // Tipos permitidos
     history: JSON.parse(localStorage.getItem('battleHistory') || '[]')
 };
 
@@ -363,44 +364,51 @@ function calculateAllParticipantsPlan(n, passCount) {
 
 /**
  * Plan mixto que garantiza que todos participen
- * Usa combinación de 1v1, triangulares y cuadrangulares
+ * Usa combinación de 1v1, triangulares y cuadrangulares según lo permitido
  */
 function calculateMixedPlan(n, passCount) {
-    // Probar combinaciones de batallas de 2, 3 y 4 personas
-    // Priorizar batallas más grandes para torneos grandes (filtrar más rápido)
+    const allowed = state.allowedBattleTypes;
     
-    const battleTypes = [
-        { size: 4, winners: [1, 2, 3] }, // Cuadrangular: pasa 1, 2 o 3
-        { size: 3, winners: [1, 2] },    // Triangular: pasa 1 o 2
-        { size: 2, winners: [1] }        // 1v1: pasa 1
-    ];
-    
-    // Para torneos grandes (15+), priorizar cuadrangulares
-    if (n >= 15) {
+    // Para torneos grandes (15+) y si cuadrangulares están permitidas
+    if (n >= 15 && allowed.quadrangular) {
         const quadPlan = tryWithQuadrangular(n, passCount);
         if (quadPlan) return quadPlan;
     }
     
-    // Probar combinación de 2 y 3
-    for (let triangularWinners = 1; triangularWinners <= 2; triangularWinners++) {
-        for (let numTriangular = 0; numTriangular <= Math.floor(n / 3); numTriangular++) {
-            const remaining = n - (numTriangular * 3);
-            
-            if (remaining >= 0 && remaining % 2 === 0) {
-                const num1v1 = remaining / 2;
-                const totalWinners = num1v1 + (numTriangular * triangularWinners);
+    // Probar combinaciones según tipos permitidos
+    if (allowed.duo && allowed.triangular) {
+        // Probar combinación de 2 y 3
+        for (let triangularWinners = 1; triangularWinners <= 2; triangularWinners++) {
+            for (let numTriangular = 0; numTriangular <= Math.floor(n / 3); numTriangular++) {
+                const remaining = n - (numTriangular * 3);
                 
-                if (totalWinners === passCount) {
-                    const plan = [];
-                    for (let i = 0; i < num1v1; i++) {
-                        plan.push({ size: 2, winnersNeeded: 1 });
+                if (remaining >= 0 && remaining % 2 === 0) {
+                    const num1v1 = remaining / 2;
+                    const totalWinners = num1v1 + (numTriangular * triangularWinners);
+                    
+                    if (totalWinners === passCount) {
+                        const plan = [];
+                        for (let i = 0; i < num1v1; i++) {
+                            plan.push({ size: 2, winnersNeeded: 1 });
+                        }
+                        for (let i = 0; i < numTriangular; i++) {
+                            plan.push({ size: 3, winnersNeeded: triangularWinners });
+                        }
+                        return plan;
                     }
-                    for (let i = 0; i < numTriangular; i++) {
-                        plan.push({ size: 3, winnersNeeded: triangularWinners });
-                    }
-                    return plan;
                 }
             }
+        }
+    } else if (allowed.duo && !allowed.triangular) {
+        // Solo 1v1
+        if (n % 2 === 0 && passCount === n / 2) {
+            return createUniformPlan(n, 2, 1);
+        }
+    } else if (allowed.triangular && !allowed.duo) {
+        // Solo triangulares
+        if (n % 3 === 0) {
+            if (passCount === n / 3) return createUniformPlan(n, 3, 1);
+            if (passCount === (n / 3) * 2) return createUniformPlan(n, 3, 2);
         }
     }
     
@@ -466,42 +474,53 @@ function tryWithQuadrangular(n, passCount) {
  * Plan flexible como fallback
  * Intenta incluir a todos aunque no sea perfecto matemáticamente
  * Prioriza batallas grandes para filtrar rápido
+ * Respeta los tipos permitidos
  */
 function calculateFlexiblePlan(n, passCount) {
     const plan = [];
     let remaining = n;
     let winnersNeeded = passCount;
+    const allowed = state.allowedBattleTypes;
     
     while (remaining > 0) {
-        let size, winners;
+        let size = 0, winners = 0;
         
-        if (remaining === 2) {
+        // Elegir tamaño según lo permitido
+        if (remaining === 2 && allowed.duo) {
             size = 2;
             winners = Math.min(1, winnersNeeded);
-        } else if (remaining === 3) {
+        } else if (remaining === 3 && allowed.triangular) {
             size = 3;
             winners = Math.min(2, winnersNeeded);
-        } else if (remaining === 4) {
+        } else if (remaining === 4 && allowed.quadrangular) {
             size = 4;
             winners = Math.min(2, winnersNeeded);
-        } else if (remaining >= 4 && winnersNeeded <= remaining / 3) {
-            // Muchos por eliminar -> usar cuadrangular donde pasa 1
+        } else if (remaining >= 4 && allowed.quadrangular && winnersNeeded <= remaining / 3) {
             size = 4;
             winners = 1;
-        } else if (remaining >= 4 && winnersNeeded >= 2) {
-            // Usar cuadrangular donde pasan 2
+        } else if (remaining >= 4 && allowed.quadrangular && winnersNeeded >= 2) {
             size = 4;
             winners = Math.min(2, winnersNeeded);
-        } else if (remaining >= 3 && winnersNeeded >= 1) {
+        } else if (remaining >= 3 && allowed.triangular && winnersNeeded >= 1) {
             size = 3;
             winners = Math.min(2, winnersNeeded);
-        } else if (remaining >= 2) {
+        } else if (remaining >= 2 && allowed.duo) {
             size = 2;
             winners = Math.min(1, winnersNeeded);
         } else {
-            // Solo queda 1 persona -> pasa directo (bye)
-            break;
+            // No hay tipo permitido que encaje, forzar el más pequeño permitido
+            if (remaining >= 2 && allowed.duo) {
+                size = 2; winners = 1;
+            } else if (remaining >= 3 && allowed.triangular) {
+                size = 3; winners = 1;
+            } else if (remaining >= 4 && allowed.quadrangular) {
+                size = 4; winners = 1;
+            } else {
+                break; // Bye
+            }
         }
+        
+        if (size === 0) break;
         
         plan.push({ size, winnersNeeded: winners });
         remaining -= size;
@@ -567,6 +586,28 @@ function updatePassCount(delta) {
         state.passCount = newCount;
         updatePassCountDisplay();
     }
+}
+
+/**
+ * Actualiza los tipos de batalla permitidos según los checkboxes
+ */
+function onBattleTypeChange() {
+    state.allowedBattleTypes = {
+        duo: document.getElementById('allow1v1').checked,
+        triangular: document.getElementById('allowTriangular').checked,
+        quadrangular: document.getElementById('allowQuadrangular').checked
+    };
+    
+    // Asegurar que al menos uno esté seleccionado
+    if (!state.allowedBattleTypes.duo && 
+        !state.allowedBattleTypes.triangular && 
+        !state.allowedBattleTypes.quadrangular) {
+        // Forzar 1v1 si desmarcan todos
+        document.getElementById('allow1v1').checked = true;
+        state.allowedBattleTypes.duo = true;
+    }
+    
+    previewBrackets();
 }
 
 function updatePassCountDisplay() {

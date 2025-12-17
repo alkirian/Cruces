@@ -90,6 +90,24 @@
             <button id="increasePass" class="btn-round">+</button>
           </div>
 
+          <div class="battle-types-selector">
+            <p class="selector-label">Tipos de batalla:</p>
+            <div class="battle-type-options">
+              <label class="battle-type-option">
+                <input type="checkbox" id="allow1v1" checked onchange="onBattleTypeChange()">
+                <span>1v1</span>
+              </label>
+              <label class="battle-type-option">
+                <input type="checkbox" id="allowTriangular" checked onchange="onBattleTypeChange()">
+                <span>Triangular</span>
+              </label>
+              <label class="battle-type-option">
+                <input type="checkbox" id="allowQuadrangular" checked onchange="onBattleTypeChange()">
+                <span>Cuadrangular</span>
+              </label>
+            </div>
+          </div>
+
           <div id="bracketPreview" class="bracket-preview">
             <!-- Preview de cómo quedarían los cruces -->
           </div>
