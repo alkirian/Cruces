@@ -364,56 +364,121 @@ function calculateAllParticipantsPlan(n, passCount) {
 
 /**
  * Plan mixto que garantiza que todos participen
- * Usa combinación de 1v1, triangulares y cuadrangulares según lo permitido
+ * NUEVO: Prueba TODAS las combinaciones posibles y elige la mejor
  */
 function calculateMixedPlan(n, passCount) {
     const allowed = state.allowedBattleTypes;
     
-    // Para torneos grandes (15+) y si cuadrangulares están permitidas
-    if (n >= 15 && allowed.quadrangular) {
-        const quadPlan = tryWithQuadrangular(n, passCount);
-        if (quadPlan) return quadPlan;
+    // Generar todas las combinaciones posibles que cubran exactamente n participantes
+    const allCombinations = findAllCombinations(n, allowed);
+    
+    if (allCombinations.length === 0) {
+        // No hay forma de cubrir a todos con los tipos permitidos
+        return calculateFlexiblePlan(n, passCount);
     }
     
-    // Probar combinaciones según tipos permitidos
-    if (allowed.duo && allowed.triangular) {
-        // Probar combinación de 2 y 3
-        for (let triangularWinners = 1; triangularWinners <= 2; triangularWinners++) {
-            for (let numTriangular = 0; numTriangular <= Math.floor(n / 3); numTriangular++) {
-                const remaining = n - (numTriangular * 3);
-                
-                if (remaining >= 0 && remaining % 2 === 0) {
-                    const num1v1 = remaining / 2;
-                    const totalWinners = num1v1 + (numTriangular * triangularWinners);
-                    
-                    if (totalWinners === passCount) {
-                        const plan = [];
-                        for (let i = 0; i < num1v1; i++) {
-                            plan.push({ size: 2, winnersNeeded: 1 });
-                        }
-                        for (let i = 0; i < numTriangular; i++) {
-                            plan.push({ size: 3, winnersNeeded: triangularWinners });
-                        }
-                        return plan;
-                    }
-                }
+    // Buscar combinación que de exactamente passCount ganadores
+    // Cada combinación puede tener diferentes winnersNeeded por batalla
+    let bestPlan = null;
+    let bestDiff = Infinity;
+    
+    for (const combo of allCombinations) {
+        // combo = { duos: X, tris: Y, quads: Z }
+        // Probar diferentes configuraciones de ganadores
+        const plans = generateWinnerVariations(combo, passCount);
+        
+        for (const plan of plans) {
+            const totalWinners = plan.reduce((sum, b) => sum + b.winnersNeeded, 0);
+            const diff = Math.abs(totalWinners - passCount);
+            
+            if (diff === 0) {
+                return plan; // ¡Exacto!
+            }
+            
+            if (diff < bestDiff) {
+                bestDiff = diff;
+                bestPlan = plan;
             }
         }
-    } else if (allowed.duo && !allowed.triangular) {
-        // Solo 1v1
-        if (n % 2 === 0 && passCount === n / 2) {
-            return createUniformPlan(n, 2, 1);
-        }
-    } else if (allowed.triangular && !allowed.duo) {
-        // Solo triangulares
-        if (n % 3 === 0) {
-            if (passCount === n / 3) return createUniformPlan(n, 3, 1);
-            if (passCount === (n / 3) * 2) return createUniformPlan(n, 3, 2);
+    }
+    
+    return bestPlan || calculateFlexiblePlan(n, passCount);
+}
+
+/**
+ * Encuentra todas las combinaciones de batallas que sumen exactamente n participantes
+ */
+function findAllCombinations(n, allowed) {
+    const combinations = [];
+    
+    const maxQuads = allowed.quadrangular ? Math.floor(n / 4) : 0;
+    const maxTris = allowed.triangular ? Math.floor(n / 3) : 0;
+    const maxDuos = allowed.duo ? Math.floor(n / 2) : 0;
+    
+    for (let quads = 0; quads <= maxQuads; quads++) {
+        for (let tris = 0; tris <= maxTris; tris++) {
+            const used = quads * 4 + tris * 3;
+            const remaining = n - used;
+            
+            if (remaining < 0) continue;
+            if (remaining === 0) {
+                combinations.push({ duos: 0, tris, quads });
+                continue;
+            }
+            
+            // Ver si el resto se puede hacer con duos
+            if (allowed.duo && remaining % 2 === 0) {
+                const duos = remaining / 2;
+                combinations.push({ duos, tris, quads });
+            }
         }
     }
     
-    // Si no hay combinación exacta, usar aproximación flexible
-    return calculateFlexiblePlan(n, passCount);
+    return combinations;
+}
+
+/**
+ * Para una combinación de batallas, genera variaciones de ganadores
+ */
+function generateWinnerVariations(combo, targetWinners) {
+    const plans = [];
+    const { duos, tris, quads } = combo;
+    
+    // Rango de ganadores por tipo:
+    // - duo: siempre 1
+    // - tri: 1 o 2
+    // - quad: 1, 2 (o 3)
+    
+    // Para simplificar, probar configuraciones donde todos los del mismo tipo tengan los mismos ganadores
+    const triOptions = tris > 0 ? [1, 2] : [0];
+    const quadOptions = quads > 0 ? [1, 2] : [0];
+    
+    for (const triWin of triOptions) {
+        for (const quadWin of quadOptions) {
+            const plan = [];
+            
+            // Agregar duos (siempre 1 ganador)
+            for (let i = 0; i < duos; i++) {
+                plan.push({ size: 2, winnersNeeded: 1 });
+            }
+            
+            // Agregar triangulares
+            for (let i = 0; i < tris; i++) {
+                plan.push({ size: 3, winnersNeeded: triWin || 1 });
+            }
+            
+            // Agregar cuadrangulares
+            for (let i = 0; i < quads; i++) {
+                plan.push({ size: 4, winnersNeeded: quadWin || 1 });
+            }
+            
+            if (plan.length > 0) {
+                plans.push(plan);
+            }
+        }
+    }
+    
+    return plans;
 }
 
 /**
