@@ -330,35 +330,35 @@ function generateBrackets(participants, passCount) {
  * 3. Ajustar winnersNeeded para llegar al passCount deseado
  */
 function calculateAllParticipantsPlan(n, passCount) {
-    // Calcular cuántos se eliminan
+    const allowed = state.allowedBattleTypes;
     const toEliminate = n - passCount;
     
-    // CASO 1: Se puede hacer todo con 1v1 (n es par y toEliminate = n/2)
-    if (n % 2 === 0 && toEliminate === n / 2) {
+    // CASO 1: Todo con 1v1 (si permitido, n par y toEliminate = n/2)
+    if (allowed.duo && n % 2 === 0 && toEliminate === n / 2) {
         return createUniformPlan(n, 2, 1);
     }
     
-    // CASO 2: Se puede hacer todo con triangulares donde pasa 1 (n divisible por 3)
-    if (n % 3 === 0 && passCount === n / 3) {
+    // CASO 2: Todo con triangulares donde pasa 1 (si permitido, n divisible por 3)
+    if (allowed.triangular && n % 3 === 0 && passCount === n / 3) {
         return createUniformPlan(n, 3, 1);
     }
     
-    // CASO 3: Se puede hacer todo con triangulares donde pasan 2
-    if (n % 3 === 0 && passCount === (n / 3) * 2) {
+    // CASO 3: Todo con triangulares donde pasan 2
+    if (allowed.triangular && n % 3 === 0 && passCount === (n / 3) * 2) {
         return createUniformPlan(n, 3, 2);
     }
     
-    // CASO 4: Se puede hacer todo con cuadrangulares donde pasa 1 (n divisible por 4)
-    if (n % 4 === 0 && passCount === n / 4) {
+    // CASO 4: Todo con cuadrangulares donde pasa 1 (si permitido, n divisible por 4)
+    if (allowed.quadrangular && n % 4 === 0 && passCount === n / 4) {
         return createUniformPlan(n, 4, 1);
     }
     
-    // CASO 5: Se puede hacer todo con cuadrangulares donde pasan 2
-    if (n % 4 === 0 && passCount === (n / 4) * 2) {
+    // CASO 5: Todo con cuadrangulares donde pasan 2
+    if (allowed.quadrangular && n % 4 === 0 && passCount === (n / 4) * 2) {
         return createUniformPlan(n, 4, 2);
     }
     
-    // CASO GENERAL: Mezclar tipos para incluir a todos
+    // CASO GENERAL: Mezclar tipos permitidos para incluir a todos
     return calculateMixedPlan(n, passCount);
 }
 
@@ -472,10 +472,8 @@ function tryWithQuadrangular(n, passCount) {
 
 /**
  * Plan flexible como fallback
- * Intenta incluir a todos aunque no sea perfecto matemáticamente
- * Prioriza batallas grandes para filtrar rápido
- * Respeta los tipos permitidos
- * SIEMPRE al menos 1 ganador por batalla
+ * ESTRICTO: Solo usa tipos permitidos
+ * Si sobran personas que no pueden formar batalla, las deja fuera
  */
 function calculateFlexiblePlan(n, passCount) {
     const plan = [];
@@ -483,48 +481,39 @@ function calculateFlexiblePlan(n, passCount) {
     let winnersNeeded = passCount;
     const allowed = state.allowedBattleTypes;
     
-    while (remaining > 0 && winnersNeeded > 0) {
+    // Determinar tamaños permitidos (ordenados de mayor a menor para eficiencia)
+    const allowedSizes = [];
+    if (allowed.quadrangular) allowedSizes.push(4);
+    if (allowed.triangular) allowedSizes.push(3);
+    if (allowed.duo) allowedSizes.push(2);
+    
+    if (allowedSizes.length === 0) {
+        return []; // Nada permitido
+    }
+    
+    const minSize = Math.min(...allowedSizes);
+    
+    while (remaining >= minSize && winnersNeeded > 0) {
         let size = 0, winners = 0;
         
-        // Elegir tamaño según lo permitido
-        if (remaining === 2 && allowed.duo) {
-            size = 2;
-            winners = 1; // Siempre 1 en 1v1
-        } else if (remaining === 3 && allowed.triangular) {
-            size = 3;
-            winners = Math.max(1, Math.min(2, winnersNeeded));
-        } else if (remaining === 4 && allowed.quadrangular) {
-            size = 4;
-            winners = Math.max(1, Math.min(2, winnersNeeded));
-        } else if (remaining >= 4 && allowed.quadrangular && winnersNeeded <= remaining / 3) {
-            size = 4;
-            winners = 1;
-        } else if (remaining >= 4 && allowed.quadrangular && winnersNeeded >= 2) {
-            size = 4;
-            winners = Math.max(1, Math.min(2, winnersNeeded));
-        } else if (remaining >= 3 && allowed.triangular) {
-            size = 3;
-            winners = Math.max(1, Math.min(2, winnersNeeded));
-        } else if (remaining >= 2 && allowed.duo) {
-            size = 2;
-            winners = 1;
-        } else {
-            // No hay tipo permitido que encaje, forzar el más pequeño permitido
-            if (remaining >= 2 && allowed.duo) {
-                size = 2; winners = 1;
-            } else if (remaining >= 3 && allowed.triangular) {
-                size = 3; winners = 1;
-            } else if (remaining >= 4 && allowed.quadrangular) {
-                size = 4; winners = 1;
-            } else {
-                break; // Bye
+        // Encontrar el tamaño más grande permitido que quepa
+        for (const s of allowedSizes) {
+            if (remaining >= s) {
+                size = s;
+                break;
             }
         }
         
         if (size === 0) break;
         
-        // GARANTIZAR mínimo 1 ganador
-        winners = Math.max(1, winners);
+        // Calcular ganadores según tamaño
+        if (size === 2) {
+            winners = 1;
+        } else if (size === 3) {
+            winners = Math.max(1, Math.min(2, winnersNeeded));
+        } else if (size === 4) {
+            winners = Math.max(1, Math.min(2, winnersNeeded));
+        }
         
         plan.push({ size, winnersNeeded: winners });
         remaining -= size;
