@@ -420,6 +420,22 @@ body {
   margin-bottom: 32px;
 }
 
+/* Config actions buttons */
+.config-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.config-actions .btn-secondary {
+  flex: 0 0 auto;
+  padding: 18px 24px;
+}
+
+.config-actions .btn-primary {
+  flex: 1;
+}
+
 .pass-count {
   font-family: var(--font-display);
   font-size: 4rem;

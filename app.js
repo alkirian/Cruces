@@ -549,6 +549,13 @@ function previewBrackets() {
     }
 }
 
+/**
+ * Regenera los cruces con un nuevo sorteo aleatorio
+ */
+function reshuffleBrackets() {
+    previewBrackets();
+}
+
 // ========================================
 // TOURNAMENT FLOW
 // ========================================
