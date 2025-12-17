@@ -347,45 +347,57 @@ function calculateAllParticipantsPlan(n, passCount) {
         return createUniformPlan(n, 3, 2);
     }
     
+    // CASO 4: Se puede hacer todo con cuadrangulares donde pasa 1 (n divisible por 4)
+    if (n % 4 === 0 && passCount === n / 4) {
+        return createUniformPlan(n, 4, 1);
+    }
+    
+    // CASO 5: Se puede hacer todo con cuadrangulares donde pasan 2
+    if (n % 4 === 0 && passCount === (n / 4) * 2) {
+        return createUniformPlan(n, 4, 2);
+    }
+    
     // CASO GENERAL: Mezclar tipos para incluir a todos
     return calculateMixedPlan(n, passCount);
 }
 
 /**
  * Plan mixto que garantiza que todos participen
- * Usa combinación de 1v1 y triangulares
+ * Usa combinación de 1v1, triangulares y cuadrangulares
  */
 function calculateMixedPlan(n, passCount) {
-    // Buscar combinación de batallas de 2 y 3 personas
-    // donde x*2 + y*3 = n (todos participan)
-    // y x*1 + y*w = passCount (donde w es 1 o 2 ganadores por triangular)
+    // Probar combinaciones de batallas de 2, 3 y 4 personas
+    // Priorizar batallas más grandes para torneos grandes (filtrar más rápido)
     
+    const battleTypes = [
+        { size: 4, winners: [1, 2, 3] }, // Cuadrangular: pasa 1, 2 o 3
+        { size: 3, winners: [1, 2] },    // Triangular: pasa 1 o 2
+        { size: 2, winners: [1] }        // 1v1: pasa 1
+    ];
+    
+    // Para torneos grandes (15+), priorizar cuadrangulares
+    if (n >= 15) {
+        const quadPlan = tryWithQuadrangular(n, passCount);
+        if (quadPlan) return quadPlan;
+    }
+    
+    // Probar combinación de 2 y 3
     for (let triangularWinners = 1; triangularWinners <= 2; triangularWinners++) {
-        // Probar diferentes cantidades de triangulares
         for (let numTriangular = 0; numTriangular <= Math.floor(n / 3); numTriangular++) {
             const remaining = n - (numTriangular * 3);
             
-            // El resto debe ser divisible por 2 para hacer 1v1
             if (remaining >= 0 && remaining % 2 === 0) {
                 const num1v1 = remaining / 2;
-                
-                // Calcular ganadores totales
                 const totalWinners = num1v1 + (numTriangular * triangularWinners);
                 
                 if (totalWinners === passCount) {
-                    // ¡Encontramos una combinación válida!
                     const plan = [];
-                    
-                    // Agregar batallas 1v1
                     for (let i = 0; i < num1v1; i++) {
                         plan.push({ size: 2, winnersNeeded: 1 });
                     }
-                    
-                    // Agregar batallas triangulares
                     for (let i = 0; i < numTriangular; i++) {
                         plan.push({ size: 3, winnersNeeded: triangularWinners });
                     }
-                    
                     return plan;
                 }
             }
@@ -397,8 +409,63 @@ function calculateMixedPlan(n, passCount) {
 }
 
 /**
+ * Intenta crear un plan con cuadrangulares para filtrar rápido
+ */
+function tryWithQuadrangular(n, passCount) {
+    // Probar: solo cuadrangulares donde pasa 1 (n divisible por 4)
+    if (n % 4 === 0 && passCount === n / 4) {
+        return createUniformPlan(n, 4, 1);
+    }
+    
+    // Probar: solo cuadrangulares donde pasan 2 (n divisible por 4)
+    if (n % 4 === 0 && passCount === (n / 4) * 2) {
+        return createUniformPlan(n, 4, 2);
+    }
+    
+    // Probar combinación cuadrangular + triangular + 1v1
+    for (let quadWinners = 1; quadWinners <= 2; quadWinners++) {
+        for (let numQuad = 1; numQuad <= Math.floor(n / 4); numQuad++) {
+            const afterQuad = n - (numQuad * 4);
+            const winnersFromQuad = numQuad * quadWinners;
+            const remainingWinners = passCount - winnersFromQuad;
+            
+            if (afterQuad >= 0 && remainingWinners >= 0) {
+                // Intentar completar con triangulares y 1v1
+                for (let triWinners = 1; triWinners <= 2; triWinners++) {
+                    for (let numTri = 0; numTri <= Math.floor(afterQuad / 3); numTri++) {
+                        const afterTri = afterQuad - (numTri * 3);
+                        
+                        if (afterTri >= 0 && afterTri % 2 === 0) {
+                            const num1v1 = afterTri / 2;
+                            const totalWinners = winnersFromQuad + (numTri * triWinners) + num1v1;
+                            
+                            if (totalWinners === passCount) {
+                                const plan = [];
+                                for (let i = 0; i < numQuad; i++) {
+                                    plan.push({ size: 4, winnersNeeded: quadWinners });
+                                }
+                                for (let i = 0; i < numTri; i++) {
+                                    plan.push({ size: 3, winnersNeeded: triWinners });
+                                }
+                                for (let i = 0; i < num1v1; i++) {
+                                    plan.push({ size: 2, winnersNeeded: 1 });
+                                }
+                                return plan;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    return null;
+}
+
+/**
  * Plan flexible como fallback
  * Intenta incluir a todos aunque no sea perfecto matemáticamente
+ * Prioriza batallas grandes para filtrar rápido
  */
 function calculateFlexiblePlan(n, passCount) {
     const plan = [];
@@ -414,8 +481,18 @@ function calculateFlexiblePlan(n, passCount) {
         } else if (remaining === 3) {
             size = 3;
             winners = Math.min(2, winnersNeeded);
-        } else if (remaining >= 3 && winnersNeeded >= 2) {
-            // Preferir triangular si necesitamos más ganadores
+        } else if (remaining === 4) {
+            size = 4;
+            winners = Math.min(2, winnersNeeded);
+        } else if (remaining >= 4 && winnersNeeded <= remaining / 3) {
+            // Muchos por eliminar -> usar cuadrangular donde pasa 1
+            size = 4;
+            winners = 1;
+        } else if (remaining >= 4 && winnersNeeded >= 2) {
+            // Usar cuadrangular donde pasan 2
+            size = 4;
+            winners = Math.min(2, winnersNeeded);
+        } else if (remaining >= 3 && winnersNeeded >= 1) {
             size = 3;
             winners = Math.min(2, winnersNeeded);
         } else if (remaining >= 2) {
