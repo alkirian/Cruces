@@ -105,6 +105,27 @@ body {
   background: rgba(255, 255, 255, 0.1);
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.install-btn {
+  color: var(--color-primary);
+  animation: pulse-install 2s infinite;
+}
+
+@keyframes pulse-install {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
 /* ========================================
    SCREENS
    ======================================== */

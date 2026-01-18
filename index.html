@@ -6,11 +6,17 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, user-scalable=no"
     />
-    <meta name="theme-color" content="#0a0a0a" />
+    <meta name="theme-color" content="#ff3d00" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="LosCruces" />
+    <link rel="apple-touch-icon" href="icon-192.png" />
+    <link rel="manifest" href="manifest.json" />
     <title>LosCruces</title>
     <link rel="stylesheet" href="styles.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
     <link
       href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700&display=swap"
       rel="stylesheet"
@@ -21,20 +27,30 @@
       <!-- Header -->
       <header class="header">
         <h1 class="logo">🎤 LOS<span>CRUCES</span></h1>
-        <button id="historyBtn" class="icon-btn" title="Historial">
-          <svg
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-          >
-            <circle cx="12" cy="12" r="10" />
-            <polyline points="12,6 12,12 16,14" />
-          </svg>
-        </button>
+        <div class="header-actions">
+          <button id="installBtn" class="icon-btn install-btn" title="Instalar App" style="display: none;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+          </button>
+          <button id="historyBtn" class="icon-btn" title="Historial">
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="12,6 12,12 16,14" />
+            </svg>
+          </button>
+        </div>
       </header>
+
 
       <!-- Screen: Registro de Participantes -->
       <section id="registerScreen" class="screen active">
@@ -60,6 +76,14 @@
 
           <button id="generateBtn" class="btn-primary" disabled>
             Generar Cruces
+          </button>
+          <button
+            id="clearAllBtn"
+            class="btn-secondary"
+            onclick="clearAllParticipants()"
+            style="margin-top: 10px"
+          >
+            🗑️ Borrar Todos
           </button>
         </div>
       </section>
@@ -94,15 +118,30 @@
             <p class="selector-label">Tipos de batalla:</p>
             <div class="battle-type-options">
               <label class="battle-type-option">
-                <input type="checkbox" id="allow1v1" checked onchange="onBattleTypeChange()">
+                <input
+                  type="checkbox"
+                  id="allow1v1"
+                  checked
+                  onchange="onBattleTypeChange()"
+                />
                 <span>1v1</span>
               </label>
               <label class="battle-type-option">
-                <input type="checkbox" id="allowTriangular" checked onchange="onBattleTypeChange()">
+                <input
+                  type="checkbox"
+                  id="allowTriangular"
+                  checked
+                  onchange="onBattleTypeChange()"
+                />
                 <span>Triangular</span>
               </label>
               <label class="battle-type-option">
-                <input type="checkbox" id="allowQuadrangular" checked onchange="onBattleTypeChange()">
+                <input
+                  type="checkbox"
+                  id="allowQuadrangular"
+                  checked
+                  onchange="onBattleTypeChange()"
+                />
                 <span>Cuadrangular</span>
               </label>
             </div>
@@ -113,7 +152,11 @@
           </div>
 
           <div class="config-actions">
-            <button id="reshuffleBtn" class="btn-secondary" onclick="reshuffleBrackets()">
+            <button
+              id="reshuffleBtn"
+              class="btn-secondary"
+              onclick="reshuffleBrackets()"
+            >
               🎲 Sortear
             </button>
             <button id="startTournamentBtn" class="btn-primary">
@@ -128,8 +171,19 @@
         <div class="screen-content">
           <div class="round-indicator">
             <div class="round-left">
-              <button id="backFromBracket" class="icon-btn back-btn" onclick="goBackFromBracket()">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <button
+                id="backFromBracket"
+                class="icon-btn back-btn"
+                onclick="goBackFromBracket()"
+              >
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
                   <path d="M19 12H5M12 19l-7-7 7-7" />
                 </svg>
               </button>
@@ -137,11 +191,20 @@
             </div>
             <div class="round-actions">
               <span id="roundProgress">0/0</span>
-              <button id="tournamentMenuBtn" class="icon-btn menu-btn" onclick="showTournamentMenu()">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                  <circle cx="12" cy="5" r="2"/>
-                  <circle cx="12" cy="12" r="2"/>
-                  <circle cx="12" cy="19" r="2"/>
+              <button
+                id="tournamentMenuBtn"
+                class="icon-btn menu-btn"
+                onclick="showTournamentMenu()"
+              >
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                >
+                  <circle cx="12" cy="5" r="2" />
+                  <circle cx="12" cy="12" r="2" />
+                  <circle cx="12" cy="19" r="2" />
                 </svg>
               </button>
             </div>
@@ -225,5 +288,42 @@
     </div>
 
     <script src="app.js"></script>
+    <script>
+      // Register Service Worker
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('sw.js')
+            .then(reg => console.log('Service Worker registrado'))
+            .catch(err => console.log('Error registrando SW:', err));
+        });
+      }
+
+      // PWA Install Prompt
+      let deferredPrompt;
+      const installBtn = document.getElementById('installBtn');
+
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        installBtn.style.display = 'flex';
+      });
+
+      installBtn.addEventListener('click', async () => {
+        if (deferredPrompt) {
+          deferredPrompt.prompt();
+          const { outcome } = await deferredPrompt.userChoice;
+          console.log('Install prompt result:', outcome);
+          deferredPrompt = null;
+          installBtn.style.display = 'none';
+        }
+      });
+
+      window.addEventListener('appinstalled', () => {
+        console.log('App instalada!');
+        installBtn.style.display = 'none';
+        deferredPrompt = null;
+      });
+    </script>
   </body>
 </html>
+
